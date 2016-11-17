@@ -1,0 +1,7 @@
+<template>
+  <h1>${message}</h1>
+  <button type="button" click.delegate="getWords()">Refresh words</button>
+  <ul>
+    <li repeat.for="word of words">${word}</li>
+  </ul>
+</template>
