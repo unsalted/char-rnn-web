@@ -1,7 +1,13 @@
 <template>
-  <h1>${message}</h1>
-  <button type="button" click.delegate="getWords()">Refresh words</button>
-  <ul>
-    <li repeat.for="word of words">${word}</li>
-  </ul>
+  <require from="./styles/app.css"></require>
+  <require from="./styles/nav.css"></require>
+  <require from="./resources/elements/scramble"></require>
+  <nav class="navbar" role="navigation">
+    <ul class="nav-list">
+      <li><a href="#/about"><scramble text="About" duration="400"></scramble></a></li>
+      <li><a href="#"><scramble text="Norm" duration="400"></scramble></a></li>
+      <li><a href="#/editor"><scramble text="Editor" duration="400"></scramble></a></li>
+    </ul>
+  </nav>
+  <router-view></router-view>
 </template>

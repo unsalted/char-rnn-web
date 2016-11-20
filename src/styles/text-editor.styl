@@ -1,0 +1,38 @@
+@import 'variables'
+@import 'kouto-swiss'
+@import '../../node_modules/jeet/styl'
+
+#text-editor
+  margin-top 1rem
+
+.text-editor-container
+  center(60em, 1rem)
+
+.text-editor-title
+  column(2/3)
+  h5
+    border none
+    font-weight bold
+    &::before
+      color lighten($primary, 75%)
+
+.text-editor-avatar
+  column(1/3)
+  autocomplete
+    width 100%
+    display block
+    input
+      font-size 1em
+      border-right 1px solid $primary
+      border-left 1px solid $primary
+      padding 0 0.2em
+      height 1.4em
+    
+.cm-editor
+  .CodeMirror
+    font-size 1em
+    line-height 1.43em
+    .CodeMirror-linenumber
+      color black
+      &:nth-of-type(4)
+        color blu1

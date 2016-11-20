@@ -109,14 +109,20 @@
           "aurelia-templating",
           "aurelia-templating-binding",
           "gcd",
-          {
-            "name": "math",
-            "path": "../node_modules/mathjs/dist/math"
-          },
+          "requestanimationframe",
+          "codemirror",
           {
             "name": "lodash",
             "path": "../node_modules/lodash",
             "main": "index"
+          },
+          {
+            "name": "codemirror",
+            "path": "../node_modules/codemirror",
+            "main": "lib/codemirror.js",
+            "resources": [
+              "lib/codemirror.css"
+            ]
           },
           {
             "name": "async",
@@ -126,7 +132,6 @@
           {
             "name": "keras",
             "path": "../node_modules/keras-js/dist/keras"
-
           },
           {
             "name": "weblas",

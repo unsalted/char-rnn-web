@@ -1,0 +1,18 @@
+<template>
+  <require from="codemirror/lib/codemirror.css"></require>
+  <require from="resources/elements/autocomplete"></require>
+  <require from="styles/text-editor.css"></require>
+  <main id="text-editor">
+  <section class="text-editor-container">
+    <div class="text-editor-title">
+      <h5 contenteditable="true" placeholder="Title" ref="editorTitle"></h5>
+    </div>
+    <label class="text-editor-avatar">
+      <autocomplete dely="300" placeholder="Beyonce" value.bind="avatar" service.bind="avatarNameService"></autocomplete>
+    </label>
+  </section>
+  <section class="text-editor-container">
+    <figure class="cm-editor" ref="cmEditor">
+    </figure>
+  </section>
+</template>

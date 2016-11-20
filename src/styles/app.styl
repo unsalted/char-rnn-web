@@ -1,0 +1,59 @@
+ks-no-conflict = true
+@import 'kouto-swiss'
+@import 'base'
+@import '../../node_modules/jeet/styl'
+@import 'typographic'
+@import 'variables'
+@import 'typography'
+
+a
+  color $link-color
+  text-decoration underline
+  &:hover
+    color $link-hover
+
+/*doc
+---
+title: Cetered Container
+name: container
+category:
+  - Structure
+---
+
+Description.
+
+```html_example
+<section class="container">This is a centered container block</section>
+```
+*/
+
+.container
+  center(70em, 1rem)
+  column(1)
+
+/*doc
+---
+title: Main button
+name: button
+category:
+  - Elements
+---
+
+Description.
+
+```html_example
+<button>Main</button>
+```
+*/
+
+button
+  padding 0 0.5em
+  height 2em
+  line-height 1em
+  background-color $magenta
+  font-weight bold
+  color $white
+  &:hover
+    background-color lighten($magenta, 30%)
+ 
+//grid-overlay(blue)

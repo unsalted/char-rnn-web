@@ -1,34 +1,9 @@
-define('app',['exports', 'aurelia-framework', 'keras', 'weblas', 'lodash/flatten', 'async/times', 'async/each', 'async/queue', 'data/indices_char', 'data/char_indices', 'resources/sampling', 'resources/utils/uniq'], function (exports, _aureliaFramework, _keras, _weblas, _flatten, _times, _each, _queue, _indices_char, _char_indices, _sampling, _uniq) {
+define('app',['exports'], function (exports) {
   'use strict';
 
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
-  exports.App = undefined;
-
-  var _weblas2 = _interopRequireDefault(_weblas);
-
-  var _flatten2 = _interopRequireDefault(_flatten);
-
-  var _times2 = _interopRequireDefault(_times);
-
-  var _each2 = _interopRequireDefault(_each);
-
-  var _queue2 = _interopRequireDefault(_queue);
-
-  var _indices_char2 = _interopRequireDefault(_indices_char);
-
-  var _char_indices2 = _interopRequireDefault(_char_indices);
-
-  var _sampling2 = _interopRequireDefault(_sampling);
-
-  var _uniq2 = _interopRequireDefault(_uniq);
-
-  function _interopRequireDefault(obj) {
-    return obj && obj.__esModule ? obj : {
-      default: obj
-    };
-  }
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -36,158 +11,20 @@ define('app',['exports', 'aurelia-framework', 'keras', 'weblas', 'lodash/flatten
     }
   }
 
-  var _dec, _class;
-
-  var App = exports.App = (_dec = (0, _aureliaFramework.inject)(_weblas2.default), _dec(_class = function () {
-    function App(weblas) {
+  var App = exports.App = function () {
+    function App() {
       _classCallCheck(this, App);
-
-      this.model = new _keras.Model({
-        filepaths: {
-          model: 'src/data/char_rnn_1.json',
-          weights: 'src/data/char_rnn_20_weights.buf',
-          metadata: 'src/data/char_rnn_20_metadata.json'
-        }
-      });
-
-      this.weblas = weblas;
-      this.maxlen = 40;
-      this.start = 'It is going to be a very long day if we keep arguing and he has to seek his way beyond ';
-      this.words = [];
-      this.message = this.start;
-      this.ready = false;
     }
 
-    App.prototype._parseText = function _parseText(text, max) {
-      text = text.split('');
-      var data = text.slice(Math.max(text.length - max, 1));
-      var x = new Array(max).fill(0).map(function (row) {
-        return new Array(57).fill(0);
-      });
-      data.forEach(function (v, i) {
-        x[i][_char_indices2.default[v]] = 1.0;
-      });
-      var f = new Float32Array((0, _flatten2.default)(x));
-      return f;
-    };
+    App.prototype.configureRouter = function configureRouter(config, router) {
+      this.router = router;
 
-    App.prototype._sample = function _sample(preds, temp, count) {
-      var t0 = performance.now();
-
-      preds = preds.map(function (n) {
-        return Math.log(n) / temp;
-      });
-
-      var exp_preds = preds.map(Math.exp);
-
-      preds = exp_preds.map(function (n) {
-        return n / exp_preds.reduce(function (a, b) {
-          return a + b;
-        }, 0);
-      });
-
-      var p = new Promise(function (resolve, reject) {
-        (0, _times2.default)(count, function (n, next) {
-          var probas = (0, _sampling2.default)().Multinomial(1, preds);
-          probas = probas.draw();
-          next(null, probas.indexOf(Math.max.apply(Math, probas)));
-        }, function (err, arr) {
-          if (err) reject(err);
-          arr = arr.map(function (c) {
-            return _indices_char2.default[c];
-          });
-          console.info('sample time ' + (performance.now() - t0));
-          resolve(arr);
-        });
-      });
-
-      return p;
-    };
-
-    App.prototype._predict = function _predict(data, temp, count) {
-      var _this = this;
-
-      var t0 = performance.now();
-
-      var p = new Promise(function (resolve, reject) {
-        _this.model.predict({
-          input: data
-        }).then(function (res) {
-          _this._sample(res.output, temp, count).then(resolve);
-          console.info('predict time ' + (performance.now() - t0));
-        }).catch(reject);
-      });
-
-      return p;
-    };
-
-    App.prototype._textPredict = function _textPredict(text, temp, count) {
-      var _this2 = this;
-
-      var word = '';
-      count = count ? count : 1;
-
-      var p = new Promise(function (resolve, reject) {
-        var iterator = function iterator(text, i) {
-          var data = _this2._parseText(text, _this2.maxlen);
-          _this2._predict(data, temp, count).then(function (chArr) {
-            i += 1;
-            if (count > 1) return resolve(chArr);
-            word += chArr[0];
-            text += word;
-            if (chArr[0] === ' ') return resolve(word);
-
-            return iterator(text);
-          }).catch(reject);
-        };
-
-        iterator(text, 0);
-      });
-      return p;
-    };
-
-    App.prototype.getWords = function getWords() {
-      var _this3 = this;
-
-      this.words = [];
-      var t1 = performance.now();
-      var text = this.start;
-      var queT1 = performance.now();
-
-      var wordQ = (0, _queue2.default)(function (task, cb) {
-        _this3._textPredict(task.text, task.temp).then(function (word) {
-          _this3.words.push(task.char + word);
-          cb();
-        }).catch(cb);
-      }, 1);
-
-      this._textPredict(text, 1, 5).then(function (chars) {
-        console.info('letters ' + chars + ' ' + (performance.now() - t1) + 'ms');
-        chars = (0, _uniq2.default)(chars);
-        var texts = chars.map(function (char) {
-          return {
-            char: char,
-            text: char.replace(/^/, text),
-            temp: 0.2
-          };
-        });
-        texts.forEach(function (text) {
-          return wordQ.push(text);
-        });
-      }).catch(console.warn);
-    };
-
-    App.prototype.attached = function attached() {
-      var _this4 = this;
-
-      this.model.ready().then(function () {
-        _this4.ready = true;
-        _this4.getWords();
-      }).catch(console.warn);
+      config.title = 'Aurelia';
+      config.map([{ route: ['', 'home'], name: 'Hello', moduleId: 'home' }, { route: 'editor', name: 'Editor', moduleId: 'text-editor' }]);
     };
 
     return App;
-  }()) || _class);
+  }();
 });
 define('environment',["exports"], function (exports) {
   "use strict";
@@ -199,6 +36,35 @@ define('environment',["exports"], function (exports) {
     debug: true,
     testing: true
   };
+});
+define('home',['exports', 'aurelia-framework'], function (exports, _aureliaFramework) {
+  'use strict';
+
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  exports.Home = undefined;
+
+  function _classCallCheck(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+      throw new TypeError("Cannot call a class as a function");
+    }
+  }
+
+  var Home = exports.Home = function () {
+    function Home() {
+      _classCallCheck(this, Home);
+
+      this.start = 'It is going to be a very long day if we keep arguing and he has to seek his way beyond ';
+      this.message = '';
+    }
+
+    Home.prototype.attached = function attached() {
+      this.message = this.start;
+    };
+
+    return Home;
+  }();
 });
 define('main',['exports', './environment'], function (exports, _environment) {
   'use strict';
@@ -237,6 +103,89 @@ define('main',['exports', './environment'], function (exports, _environment) {
       return aurelia.setRoot();
     });
   }
+});
+define('text-editor',['exports', 'aurelia-framework', 'codemirror', 'data/avatars'], function (exports, _aureliaFramework, _codemirror, _avatars) {
+  'use strict';
+
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  exports.AvatarNameSuggestionService = exports.TextEditor = undefined;
+
+  var _codemirror2 = _interopRequireDefault(_codemirror);
+
+  function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : {
+      default: obj
+    };
+  }
+
+  function _classCallCheck(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+      throw new TypeError("Cannot call a class as a function");
+    }
+  }
+
+  var TextEditor = exports.TextEditor = function () {
+    function TextEditor() {
+      _classCallCheck(this, TextEditor);
+
+      this.avatarNameService = new AvatarNameSuggestionService();
+      this.avatar = "";
+      this.editorOptions = {
+        lineNumbers: false,
+        mode: 'markdown',
+        extraKeys: { 'Ctrl-Space': 'autocomplete' },
+        theme: 'default',
+        lineWrapping: true,
+        hintOptions: { aync: true, completeSingle: false },
+        foldGutter: false
+      };
+
+      this.editorTitleEvent = function (e) {
+        if (e.which === 13) e.preventDefault();
+      };
+
+      this.start = 'It is going to be a very long day if we keep arguing and he has to seek his way beyond ';
+    }
+
+    TextEditor.prototype.detatched = function detatched() {
+      this.editorTitle.removeEventListener('keypress', this.editorTitleEvent);
+    };
+
+    TextEditor.prototype.attached = function attached() {
+      this.cm = (0, _codemirror2.default)(this.cmEditor, this.editorOptions);
+      this.cm.configure;
+      this.editorTitle.addEventListener('keypress', this.editorTitleEvent);
+    };
+
+    return TextEditor;
+  }();
+
+  var AvatarNameSuggestionService = exports.AvatarNameSuggestionService = function () {
+    function AvatarNameSuggestionService() {
+      _classCallCheck(this, AvatarNameSuggestionService);
+    }
+
+    AvatarNameSuggestionService.prototype.suggest = function suggest(value) {
+      if (value === '') {
+        return Promise.resolve([]);
+      }
+      value = value.toLowerCase();
+      var suggestions = _avatars.avatars.filter(function (x) {
+        return x.name.toLowerCase().indexOf(value) === 0;
+      }).map(function (x) {
+        return x.name;
+      });
+      return Promise.resolve(suggestions);
+    };
+
+    AvatarNameSuggestionService.prototype.getName = function getName(suggestion) {
+      return suggestion;
+    };
+
+    return AvatarNameSuggestionService;
+  }();
 });
 define('resources/index',["exports"], function (exports) {
   "use strict";
@@ -347,23 +296,13 @@ define('resources/sampling',["exports"], function (exports) {
     };
   };
 });
-define('resources/utils',["exports"], function (exports) {
+define('data/avatars',["exports"], function (exports) {
   "use strict";
 
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
-
-  exports.default = function () {
-
-    var utils = function utils(a) {
-      return Array.from(new Set(a));
-    };
-
-    return {
-      utils: utils
-    };
-  };
+  var avatars = exports.avatars = [{ name: "Beyonce" }, { name: "Rhianna" }, { name: "John Legend" }, { name: "William Shakespeare" }, { name: "James Joyce" }, { name: "Javascript" }];
 });
 define('data/char_indices',["exports"], function (exports) {
   "use strict";
@@ -379,7 +318,872 @@ define('data/indices_char',["exports"], function (exports) {
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
-  exports.default = { "0": "\n", "1": " ", "2": "!", "3": "\"", "4": "'", "5": "(", "6": ")", "7": ",", "8": "-", "9": ".", "10": "0", "11": "1", "12": "2", "13": "3", "14": "4", "15": "5", "16": "6", "17": "7", "18": "8", "19": "9", "20": ":", "21": ";", "22": "=", "23": "?", "24": "[", "25": "]", "26": "_", "27": "a", "28": "b", "29": "c", "30": "d", "31": "e", "32": "f", "33": "g", "34": "h", "35": "i", "36": "j", "37": "k", "38": "l", "39": "m", "40": "n", "41": "o", "42": "p", "43": "q", "44": "r", "45": "s", "46": "t", "47": "u", "48": "v", "49": "w", "50": "x", "51": "y", "52": "z", "53": "ä", "54": "æ", "55": "é", "56": "ë" };
+  exports.default = {
+    "0": "\n",
+    "1": " ",
+    "2": "!",
+    "3": "\"",
+    "4": "'",
+    "5": "(",
+    "6": ")",
+    "7": ",",
+    "8": "-",
+    "9": ".",
+    "10": "0",
+    "11": "1",
+    "12": "2",
+    "13": "3",
+    "14": "4",
+    "15": "5",
+    "16": "6",
+    "17": "7",
+    "18": "8",
+    "19": "9",
+    "20": ":",
+    "21": ";",
+    "22": "=",
+    "23": "?",
+    "24": "[",
+    "25": "]",
+    "26": "_",
+    "27": "a",
+    "28": "b",
+    "29": "c",
+    "30": "d",
+    "31": "e",
+    "32": "f",
+    "33": "g",
+    "34": "h",
+    "35": "i",
+    "36": "j",
+    "37": "k",
+    "38": "l",
+    "39": "m",
+    "40": "n",
+    "41": "o",
+    "42": "p",
+    "43": "q",
+    "44": "r",
+    "45": "s",
+    "46": "t",
+    "47": "u",
+    "48": "v",
+    "49": "w",
+    "50": "x",
+    "51": "y",
+    "52": "z",
+    "53": "ä",
+    "54": "æ",
+    "55": "é",
+    "56": "ë"
+  };
+});
+define('resources/elements/autocomplete',['exports', 'aurelia-binding', 'aurelia-templating', 'aurelia-dependency-injection', 'aurelia-pal'], function (exports, _aureliaBinding, _aureliaTemplating, _aureliaDependencyInjection, _aureliaPal) {
+  'use strict';
+
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  exports.Autocomplete = undefined;
+
+  function _initDefineProp(target, property, descriptor, context) {
+    if (!descriptor) return;
+    Object.defineProperty(target, property, {
+      enumerable: descriptor.enumerable,
+      configurable: descriptor.configurable,
+      writable: descriptor.writable,
+      value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+    });
+  }
+
+  function _classCallCheck(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+      throw new TypeError("Cannot call a class as a function");
+    }
+  }
+
+  function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) {
+    var desc = {};
+    Object['ke' + 'ys'](descriptor).forEach(function (key) {
+      desc[key] = descriptor[key];
+    });
+    desc.enumerable = !!desc.enumerable;
+    desc.configurable = !!desc.configurable;
+
+    if ('value' in desc || desc.initializer) {
+      desc.writable = true;
+    }
+
+    desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+      return decorator(target, property, desc) || desc;
+    }, desc);
+
+    if (context && desc.initializer !== void 0) {
+      desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+      desc.initializer = undefined;
+    }
+
+    if (desc.initializer === void 0) {
+      Object['define' + 'Property'](target, property, desc);
+      desc = null;
+    }
+
+    return desc;
+  }
+
+  function _initializerWarningHelper(descriptor, context) {
+    throw new Error('Decorating class property failed. Please ensure that transform-class-properties is enabled.');
+  }
+
+  var _dec, _dec2, _class, _desc, _value, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5;
+
+  var nextID = 0;
+
+  var Autocomplete = exports.Autocomplete = (_dec = (0, _aureliaDependencyInjection.inject)(Element), _dec2 = (0, _aureliaTemplating.bindable)({ defaultBindingMode: _aureliaBinding.bindingMode.twoWay }), _dec(_class = (_class2 = function () {
+    function Autocomplete(element) {
+      _classCallCheck(this, Autocomplete);
+
+      _initDefineProp(this, 'service', _descriptor, this);
+
+      _initDefineProp(this, 'value', _descriptor2, this);
+
+      _initDefineProp(this, 'placeholder', _descriptor3, this);
+
+      _initDefineProp(this, 'delay', _descriptor4, this);
+
+      this.id = nextID++;
+      this.expanded = false;
+
+      _initDefineProp(this, 'inputValue', _descriptor5, this);
+
+      this.updatingInput = false;
+      this.suggestions = [];
+      this.index = -1;
+      this.suggestionsUL = null;
+      this.userInput = '';
+
+      this.element = element;
+    }
+
+    Autocomplete.prototype.display = function display(name) {
+      this.updatingInput = true;
+      this.inputValue = name;
+      this.updatingInput = false;
+    };
+
+    Autocomplete.prototype.getName = function getName(suggestion) {
+      if (suggestion == null) {
+        return '';
+      }
+      return this.service.getName(suggestion);
+    };
+
+    Autocomplete.prototype.collapse = function collapse() {
+      this.expanded = false;
+      this.index = -1;
+    };
+
+    Autocomplete.prototype.select = function select(suggestion) {
+      this.value = suggestion;
+      var name = this.getName(this.value);
+      this.userInput = name;
+      this.display(name);
+      this.collapse();
+    };
+
+    Autocomplete.prototype.valueChanged = function valueChanged() {
+      this.select(this.value);
+    };
+
+    Autocomplete.prototype.inputValueChanged = function inputValueChanged(value) {
+      var _this = this;
+
+      if (this.updatingInput) {
+        return;
+      }
+      this.userInput = value;
+      if (value === '') {
+        this.value = null;
+        this.collapse();
+        return;
+      }
+      this.service.suggest(value).then(function (suggestions) {
+        var _suggestions;
+
+        _this.index = -1;
+        (_suggestions = _this.suggestions).splice.apply(_suggestions, [0, _this.suggestions.length].concat(suggestions));
+        if (suggestions.length === 1) {
+          _this.select(suggestions[0]);
+        } else if (suggestions.length === 0) {
+          _this.collapse();
+        } else {
+          _this.expanded = true;
+        }
+      });
+    };
+
+    Autocomplete.prototype.scroll = function scroll() {
+      var ul = this.suggestionsUL;
+      var li = ul.children.item(this.index === -1 ? 0 : this.index);
+      if (li.offsetTop + li.offsetHeight > ul.offsetHeight) {
+        ul.scrollTop += li.offsetHeight;
+      } else if (li.offsetTop < ul.scrollTop) {
+        ul.scrollTop = li.offsetTop;
+      }
+    };
+
+    Autocomplete.prototype.keydown = function keydown(key) {
+      if (!this.expanded) {
+        return true;
+      }
+
+      if (key === 40) {
+        if (this.index < this.suggestions.length - 1) {
+          this.index++;
+          this.display(this.getName(this.suggestions[this.index]));
+        } else {
+          this.index = -1;
+          this.display(this.userInput);
+        }
+        this.scroll();
+        return;
+      }
+
+      if (key === 38) {
+        if (this.index === -1) {
+          this.index = this.suggestions.length - 1;
+          this.display(this.getName(this.suggestions[this.index]));
+        } else if (this.index > 0) {
+          this.index--;
+          this.display(this.getName(this.suggestions[this.index]));
+        } else {
+          this.index = -1;
+          this.display(this.userInput);
+        }
+        this.scroll();
+        return;
+      }
+
+      if (key === 27) {
+        this.display(this.userInput);
+        this.collapse();
+        return;
+      }
+
+      if (key === 13) {
+        if (this.index >= 0) {
+          this.select(this.suggestions[this.index]);
+        }
+        return;
+      }
+
+      return true;
+    };
+
+    Autocomplete.prototype.blur = function blur() {
+      this.select(this.value);
+      this.element.dispatchEvent(_aureliaPal.DOM.createCustomEvent('blur'));
+    };
+
+    Autocomplete.prototype.suggestionClicked = function suggestionClicked(suggestion) {
+      this.select(suggestion);
+    };
+
+    Autocomplete.prototype.focus = function focus() {
+      this.element.firstElementChild.focus();
+    };
+
+    return Autocomplete;
+  }(), (_descriptor = _applyDecoratedDescriptor(_class2.prototype, 'service', [_aureliaTemplating.bindable], {
+    enumerable: true,
+    initializer: null
+  }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, 'value', [_dec2], {
+    enumerable: true,
+    initializer: null
+  }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, 'placeholder', [_aureliaTemplating.bindable], {
+    enumerable: true,
+    initializer: function initializer() {
+      return '';
+    }
+  }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, 'delay', [_aureliaTemplating.bindable], {
+    enumerable: true,
+    initializer: function initializer() {
+      return 300;
+    }
+  }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, 'inputValue', [_aureliaBinding.observable], {
+    enumerable: true,
+    initializer: function initializer() {
+      return '';
+    }
+  })), _class2)) || _class);
+});
+define('resources/elements/editor',['exports', 'aurelia-framework'], function (exports, _aureliaFramework) {
+  'use strict';
+
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  exports.Editor = undefined;
+
+  function _initDefineProp(target, property, descriptor, context) {
+    if (!descriptor) return;
+    Object.defineProperty(target, property, {
+      enumerable: descriptor.enumerable,
+      configurable: descriptor.configurable,
+      writable: descriptor.writable,
+      value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+    });
+  }
+
+  function _classCallCheck(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+      throw new TypeError("Cannot call a class as a function");
+    }
+  }
+
+  function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) {
+    var desc = {};
+    Object['ke' + 'ys'](descriptor).forEach(function (key) {
+      desc[key] = descriptor[key];
+    });
+    desc.enumerable = !!desc.enumerable;
+    desc.configurable = !!desc.configurable;
+
+    if ('value' in desc || desc.initializer) {
+      desc.writable = true;
+    }
+
+    desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+      return decorator(target, property, desc) || desc;
+    }, desc);
+
+    if (context && desc.initializer !== void 0) {
+      desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+      desc.initializer = undefined;
+    }
+
+    if (desc.initializer === void 0) {
+      Object['define' + 'Property'](target, property, desc);
+      desc = null;
+    }
+
+    return desc;
+  }
+
+  function _initializerWarningHelper(descriptor, context) {
+    throw new Error('Decorating class property failed. Please ensure that transform-class-properties is enabled.');
+  }
+
+  var _desc, _value, _class, _descriptor;
+
+  var Editor = exports.Editor = (_class = function () {
+    function Editor() {
+      _classCallCheck(this, Editor);
+
+      _initDefineProp(this, 'value', _descriptor, this);
+    }
+
+    Editor.prototype.valueChanged = function valueChanged(newValue, oldValue) {};
+
+    return Editor;
+  }(), (_descriptor = _applyDecoratedDescriptor(_class.prototype, 'value', [_aureliaFramework.bindable], {
+    enumerable: true,
+    initializer: null
+  })), _class);
+});
+define('resources/elements/scramble',['exports', 'aurelia-framework', '../utils/ease', 'requestanimationframe'], function (exports, _aureliaFramework, _ease) {
+  'use strict';
+
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  exports.Scramble = undefined;
+
+  var _ease2 = _interopRequireDefault(_ease);
+
+  function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : {
+      default: obj
+    };
+  }
+
+  function _initDefineProp(target, property, descriptor, context) {
+    if (!descriptor) return;
+    Object.defineProperty(target, property, {
+      enumerable: descriptor.enumerable,
+      configurable: descriptor.configurable,
+      writable: descriptor.writable,
+      value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+    });
+  }
+
+  function _classCallCheck(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+      throw new TypeError("Cannot call a class as a function");
+    }
+  }
+
+  function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) {
+    var desc = {};
+    Object['ke' + 'ys'](descriptor).forEach(function (key) {
+      desc[key] = descriptor[key];
+    });
+    desc.enumerable = !!desc.enumerable;
+    desc.configurable = !!desc.configurable;
+
+    if ('value' in desc || desc.initializer) {
+      desc.writable = true;
+    }
+
+    desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+      return decorator(target, property, desc) || desc;
+    }, desc);
+
+    if (context && desc.initializer !== void 0) {
+      desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+      desc.initializer = undefined;
+    }
+
+    if (desc.initializer === void 0) {
+      Object['define' + 'Property'](target, property, desc);
+      desc = null;
+    }
+
+    return desc;
+  }
+
+  function _initializerWarningHelper(descriptor, context) {
+    throw new Error('Decorating class property failed. Please ensure that transform-class-properties is enabled.');
+  }
+
+  var _desc, _value, _class, _descriptor, _descriptor2;
+
+  var Scramble = exports.Scramble = (_class = function () {
+    function Scramble() {
+      _classCallCheck(this, Scramble);
+
+      _initDefineProp(this, 'duration', _descriptor, this);
+
+      _initDefineProp(this, 'text', _descriptor2, this);
+
+      this.animationID = undefined;
+      this.targetText = '';
+      this.chars = ['&blk14;', '&blk12;', '&block;', '&brvbar;', '&boxdl;', '&frasl;', '&bsol; ', '&gt;', '&lt;'];
+      this.then = 0;
+      this.frames = 0;
+      this.frame = 0;
+      this.from = [];
+      this.to = [];
+      this.reverse = false;
+      this.fps = 1000 / 30;
+    }
+
+    Scramble.prototype.startAnimation = function startAnimation(from, to, frames) {
+      this.then = Date.now();
+      this.from = from;
+      this.to = to;
+      this.frames = frames;
+      if (!this.animationID) {
+        this.animationID = requestAnimationFrame(this.scrambleAnimation.bind(this));
+      }
+    };
+
+    Scramble.prototype.stopAnimation = function stopAnimation(text) {
+      if (this.animationID) {
+        console.log(this.animationID);
+        cancelAnimationFrame(this.animationID);
+        this.targetText = text ? text : this.text;
+        this.animationID = undefined;
+      }
+    };
+
+    Scramble.prototype.scrambleAnimation = function scrambleAnimation() {
+      this.animationID = requestAnimationFrame(this.scrambleAnimation.bind(this));
+      var now = void 0,
+          elapsed = void 0,
+          sin = void 0,
+          threshold = void 0,
+          i = void 0,
+          chars = void 0;
+      now = Date.now();
+      elapsed = now - this.then;
+      if (elapsed > this.fps) {
+        sin = _ease2.default.inOutSine(this.frame, 0, 1, this.frames);
+        threshold = this.reverse ? 1 - sin : sin;
+        this.then = now - elapsed % this.fps;
+        this.frame += 1;
+
+        for (i = this.from.length - 1; i >= 0; i--) {
+          if (Math.random() > threshold) {
+            this.from[i] = this.chars[Math.floor(Math.random() * this.chars.length)];
+          } else {
+            this.from[i] = this.to[i];
+          }
+        }
+        this.targetText = this.from.join('');
+      }
+    };
+
+    Scramble.prototype.fromToAnimation = function fromToAnimation(from, to) {
+      var _this = this;
+
+      var dur = this.duration / 2;
+      var fromArr = from.split('');
+      var fromLength = fromArr.length;
+      var toArr = Array.apply(null, Array(fromLength));
+      var frames = dur / this.fps;
+      this.reverse = true;
+      this.startAnimation(fromArr, toArr, frames);
+
+      setTimeout(function () {
+        _this.stopAnimation();
+
+        toArr = to.split('');
+        fromLength = fromArr.length;
+        fromArr = Array.apply(null, Array(fromLength));
+        _this.startAnimation(fromArr, toArr, frames);
+
+        setTimeout(function () {
+          _this.stopAnimation(to);
+        }, dur);
+      }, dur);
+    };
+
+    Scramble.prototype.toAnimation = function toAnimation(to) {
+      var _this2 = this;
+
+      var dur = this.duration;
+      var toArr = to.split('');
+      var fromArr = Array.apply(null, Array(toArr.length));
+      var frames = dur / this.fps;
+
+      this.startAnimation(fromArr, toArr, frames);
+      setTimeout(function () {
+        _this2.stopAnimation(to);
+      }, dur);
+    };
+
+    Scramble.prototype.attached = function attached() {
+      if (!this.animationID && this.targetText) this.toAnimation(this.targetText);
+    };
+
+    Scramble.prototype.textChanged = function textChanged(newText, oldText) {
+      if (newText && oldText && newText !== oldText) this.fromToAnimation(newText, oldText);else this.toAnimation(newText);
+    };
+
+    return Scramble;
+  }(), (_descriptor = _applyDecoratedDescriptor(_class.prototype, 'duration', [_aureliaFramework.bindable], {
+    enumerable: true,
+    initializer: null
+  }), _descriptor2 = _applyDecoratedDescriptor(_class.prototype, 'text', [_aureliaFramework.bindable], {
+    enumerable: true,
+    initializer: null
+  })), _class);
+});
+define('resources/elements/suggestions',['exports', 'aurelia-framework', 'keras', 'weblas', 'lodash/flatten', 'async/times', 'async/each', 'async/queue', '../../data/indices_char', '../../data/char_indices', '../sampling', '../utils/uniq'], function (exports, _aureliaFramework, _keras, _weblas, _flatten, _times, _each, _queue, _indices_char, _char_indices, _sampling, _uniq) {
+  'use strict';
+
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  exports.Suggestions = undefined;
+
+  var _weblas2 = _interopRequireDefault(_weblas);
+
+  var _flatten2 = _interopRequireDefault(_flatten);
+
+  var _times2 = _interopRequireDefault(_times);
+
+  var _each2 = _interopRequireDefault(_each);
+
+  var _queue2 = _interopRequireDefault(_queue);
+
+  var _indices_char2 = _interopRequireDefault(_indices_char);
+
+  var _char_indices2 = _interopRequireDefault(_char_indices);
+
+  var _sampling2 = _interopRequireDefault(_sampling);
+
+  var _uniq2 = _interopRequireDefault(_uniq);
+
+  function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : {
+      default: obj
+    };
+  }
+
+  function _initDefineProp(target, property, descriptor, context) {
+    if (!descriptor) return;
+    Object.defineProperty(target, property, {
+      enumerable: descriptor.enumerable,
+      configurable: descriptor.configurable,
+      writable: descriptor.writable,
+      value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+    });
+  }
+
+  function _classCallCheck(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+      throw new TypeError("Cannot call a class as a function");
+    }
+  }
+
+  function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) {
+    var desc = {};
+    Object['ke' + 'ys'](descriptor).forEach(function (key) {
+      desc[key] = descriptor[key];
+    });
+    desc.enumerable = !!desc.enumerable;
+    desc.configurable = !!desc.configurable;
+
+    if ('value' in desc || desc.initializer) {
+      desc.writable = true;
+    }
+
+    desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+      return decorator(target, property, desc) || desc;
+    }, desc);
+
+    if (context && desc.initializer !== void 0) {
+      desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+      desc.initializer = undefined;
+    }
+
+    if (desc.initializer === void 0) {
+      Object['define' + 'Property'](target, property, desc);
+      desc = null;
+    }
+
+    return desc;
+  }
+
+  function _initializerWarningHelper(descriptor, context) {
+    throw new Error('Decorating class property failed. Please ensure that transform-class-properties is enabled.');
+  }
+
+  var _dec, _class, _desc, _value, _class2, _descriptor, _descriptor2, _descriptor3;
+
+  var Suggestions = exports.Suggestions = (_dec = (0, _aureliaFramework.inject)(_weblas2.default), _dec(_class = (_class2 = function () {
+    function Suggestions(weblas) {
+      _classCallCheck(this, Suggestions);
+
+      _initDefineProp(this, 'text', _descriptor, this);
+
+      _initDefineProp(this, 'suggestions', _descriptor2, this);
+
+      _initDefineProp(this, 'selected', _descriptor3, this);
+
+      this.model = new _keras.Model({
+        filepaths: {
+          model: 'src/data/char_rnn_1.json',
+          weights: 'src/data/char_rnn_80_weights.buf',
+          metadata: 'src/data/char_rnn_80_metadata.json'
+        }
+      });
+
+      this.weblas = weblas;
+      this.maxlen = 40;
+      this.start = 'It is going to be a very long day if we keep arguing and he has to seek his way beyond ';
+      this.words = [];
+      this.message = '';
+      this.ready = false;
+    }
+
+    Suggestions.prototype._parseText = function _parseText(text, max) {
+      text = text.split('');
+      var data = text.slice(Math.max(text.length - max, 1));
+      var x = new Array(max).fill(0).map(function (row) {
+        return new Array(57).fill(0);
+      });
+      data.forEach(function (v, i) {
+        x[i][_char_indices2.default[v]] = 1.0;
+      });
+      var f = new Float32Array((0, _flatten2.default)(x));
+      return f;
+    };
+
+    Suggestions.prototype._sample = function _sample(preds, temp, count) {
+      var t0 = performance.now();
+
+      preds = preds.map(function (n) {
+        return Math.log(n) / temp;
+      });
+
+      var exp_preds = preds.map(Math.exp);
+
+      preds = exp_preds.map(function (n) {
+        return n / exp_preds.reduce(function (a, b) {
+          return a + b;
+        }, 0);
+      });
+
+      var p = new Promise(function (resolve, reject) {
+        (0, _times2.default)(count, function (n, next) {
+          var probas = (0, _sampling2.default)().Multinomial(1, preds);
+          probas = probas.draw();
+          next(null, probas.indexOf(Math.max.apply(Math, probas)));
+        }, function (err, arr) {
+          if (err) reject(err);
+          arr = arr.map(function (c) {
+            return _indices_char2.default[c];
+          });
+          console.info('sample time ' + (performance.now() - t0));
+          resolve(arr);
+        });
+      });
+
+      return p;
+    };
+
+    Suggestions.prototype._predict = function _predict(data, temp, count) {
+      var _this = this;
+
+      var t0 = performance.now();
+
+      var p = new Promise(function (resolve, reject) {
+        _this.model.predict({
+          input: data
+        }).then(function (res) {
+          _this._sample(res.output, temp, count).then(resolve);
+          console.info('predict time ' + (performance.now() - t0));
+        }).catch(reject);
+      });
+
+      return p;
+    };
+
+    Suggestions.prototype._textPredict = function _textPredict(text, temp, count) {
+      var _this2 = this;
+
+      var word = '';
+      count = count ? count : 1;
+
+      var p = new Promise(function (resolve, reject) {
+        var iterator = function iterator(text, i) {
+          var data = _this2._parseText(text, _this2.maxlen);
+          _this2._predict(data, temp, count).then(function (chArr) {
+            i += 1;
+            if (count > 1) return resolve(chArr);
+            word += chArr[0];
+            text += word;
+            if (chArr[0] === ' ') return resolve(word);
+
+            return iterator(text);
+          }).catch(reject);
+        };
+
+        iterator(text, 0);
+      });
+      return p;
+    };
+
+    Suggestions.prototype.getWords = function getWords() {
+      var _this3 = this;
+
+      this.words = [];
+      var t1 = performance.now();
+      var text = this.start;
+      var queT1 = performance.now();
+
+      var wordQ = (0, _queue2.default)(function (task, cb) {
+        _this3._textPredict(task.text, task.temp).then(function (word) {
+          _this3.words.push(task.char + word);
+          cb();
+        }).catch(cb);
+      }, 1);
+
+      this._textPredict(text, 0.5, 5).then(function (chars) {
+        console.info('letters ' + chars + ' ' + (performance.now() - t1) + 'ms');
+        chars = (0, _uniq2.default)(chars);
+        var texts = chars.map(function (char) {
+          return {
+            char: char,
+            text: char.replace(/^/, text),
+            temp: 0.5
+          };
+        });
+        texts.forEach(function (text) {
+          return wordQ.push(text);
+        });
+      }).catch(console.warn);
+    };
+
+    Suggestions.prototype.attached = function attached() {
+      var _this4 = this;
+
+      this.model.ready().then(function () {
+        _this4.ready = true;
+        _this4.getWords();
+      }).catch(console.warn);
+    };
+
+    Suggestions.prototype.valueChanged = function valueChanged(newValue, oldValue) {};
+
+    return Suggestions;
+  }(), (_descriptor = _applyDecoratedDescriptor(_class2.prototype, 'text', [_aureliaFramework.bindable], {
+    enumerable: true,
+    initializer: null
+  }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, 'suggestions', [_aureliaFramework.bindable], {
+    enumerable: true,
+    initializer: null
+  }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, 'selected', [_aureliaFramework.bindable], {
+    enumerable: true,
+    initializer: null
+  })), _class2)) || _class);
+});
+define('resources/utils/ease',["exports"], function (exports) {
+  "use strict";
+
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  exports.default = {
+    inOutSine: function inOutSine(t, b, c, d) {
+      return -c / 2 * (Math.cos(Math.PI * t / d) - 1) + b;
+    }
+  };
+});
+define('resources/utils/index',['exports', './uniq', './ease'], function (exports, _uniq, _ease) {
+  'use strict';
+
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  exports.Utils = undefined;
+
+  var _uniq2 = _interopRequireDefault(_uniq);
+
+  var _ease2 = _interopRequireDefault(_ease);
+
+  function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : {
+      default: obj
+    };
+  }
+
+  function _classCallCheck(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+      throw new TypeError("Cannot call a class as a function");
+    }
+  }
+
+  var Utils = exports.Utils = function Utils() {
+    _classCallCheck(this, Utils);
+
+    this.uniq = _uniq2.default;
+    this.ease = _ease2.default;
+  };
+});
+define('resources/utils/uniq',["exports"], function (exports) {
+  "use strict";
+
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+
+  exports.default = function (a) {
+    return Array.from(new Set(a));
+  };
 });
 define('lodash/flatten',['require','exports','module','./_baseFlatten'],function (require, exports, module) {var baseFlatten = require('./_baseFlatten');
 
@@ -2889,44 +3693,20 @@ DLL.prototype.pop = function () {
 module.exports = exports["default"];
 });
 
-define('resources/utils/index',['exports', './uniq'], function (exports, _uniq) {
-  'use strict';
-
-  Object.defineProperty(exports, "__esModule", {
-    value: true
-  });
-  exports.Utils = undefined;
-
-  var _uniq2 = _interopRequireDefault(_uniq);
-
-  function _interopRequireDefault(obj) {
-    return obj && obj.__esModule ? obj : {
-      default: obj
-    };
-  }
-
-  function _classCallCheck(instance, Constructor) {
-    if (!(instance instanceof Constructor)) {
-      throw new TypeError("Cannot call a class as a function");
-    }
-  }
-
-  var Utils = exports.Utils = function Utils() {
-    _classCallCheck(this, Utils);
-
-    this.uniq = _uniq2.default;
-  };
-});
-define('resources/utils/uniq',["exports"], function (exports) {
-  "use strict";
-
-  Object.defineProperty(exports, "__esModule", {
-    value: true
-  });
-
-  exports.default = function (a) {
-    return Array.from(new Set(a));
-  };
-});
-define('text!app.html', ['module'], function(module) { module.exports = "<template>\n  <h1>${message}</h1>\n  <button type=\"button\" click.delegate=\"getWords()\">Refresh words</button>\n  <ul>\n    <li repeat.for=\"word of words\">${word}</li>\n  </ul>\n</template>\n"; });
+define('text!about.html', ['module'], function(module) { module.exports = ""; });
+define('text!styles/app.css', ['module'], function(module) { module.exports = "html {\n  -ms-text-size-adjust: 100%;\n  -webkit-text-size-adjust: 100%;\n}\nbody {\n  margin: 0;\n  font-size: 16px;\n  -moz-osx-font-smoothing: grayscale;\n  -webkit-font-smoothing: antialiased;\n}\nh1,\nh2,\nh3,\nh4,\np,\nblockquote,\nfigure,\nol,\nul {\n  margin: 0;\n  padding: 0;\n}\nmain,\nli {\n  display: block;\n}\nh1,\nh2,\nh3,\nh4 {\n  font-size: inherit;\n}\nstrong {\n  font-weight: bold;\n}\na,\nbutton {\n  color: inherit;\n  -webkit-transition: 0.3s;\n  transition: 0.3s;\n}\na {\n  text-decoration: none;\n}\nbutton {\n  overflow: visible;\n  border: 0;\n  font: inherit;\n  -webkit-font-smoothing: inherit;\n  letter-spacing: inherit;\n  background: none;\n  cursor: pointer;\n}\n-moz-focus-inner {\n  padding: 0;\n  border: 0;\n}\nfocus {\n  outline: 0px solid transparent;\n}\n:focus {\n  outline: 0px solid transparent;\n}\nimg {\n  max-width: 100%;\n  height: auto;\n  border: 0;\n}\nh1,\nh2,\nh3,\nh4,\nh5,\nh6,\np,\nblockquote,\npre,\na,\nabbr,\nacronym,\naddress,\nbig,\ncite,\ncode,\ndel,\ndfn,\nem,\nimg,\nins,\nkbd,\nq,\ns,\nsamp,\nsmall,\nstrike,\nstrong,\nsub,\nsup,\ntt,\nvar,\nb,\nu,\ni,\ncenter,\ndl,\ndt,\ndd,\nol,\nul,\nli,\nfieldset,\nform,\nlabel,\nlegend,\ninput,\ntable,\ncaption,\ntbody,\ntfoot,\nthead,\ntr,\nth,\ntd {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: inherit;\n}\n[contentEditable=true]:empty:not(:focus):before {\n  content: attr(placeholder);\n}\nhtml {\n  font-family: 'Space Mono', Menlo, Monaco, Consolas, \"Courier New\", monospace;\n  font-weight: 300;\n  color: #3a3c83;\n  font-size: 16px;\n  line-height: 1.75em;\n}\n@media (min-width: 600px) {\n  html {\n    font-size: calc( 16px + (32 - 16) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  html {\n    font-size: 32px;\n  }\n}\np,\nblockquote,\npre,\naddress,\ndl,\nol,\nul,\ntable {\n  margin-bottom: 1.75em;\n}\nh1,\nh2,\nh3,\nh4,\nh5 {\n  font-family: 'Space Mono', Menlo, Monaco, Consolas, \"Courier New\", monospace;\n  font-weight: 500;\n  color: #3a3c83;\n  clear: both;\n}\nh1 {\n  font-size: 37.13918660312081px;\n  margin-top: 0;\n  line-height: 1.1em;\n  margin-bottom: 0.25em;\n}\n@media (min-width: 600px) {\n  h1 {\n    font-size: calc( 37.13918660312081px + (74.27837320624162 - 37.13918660312081) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  h1 {\n    font-size: 74.27837320624162px;\n  }\n}\nh2 {\n  font-size: 31.382671211473443px;\n  margin-top: 0;\n  line-height: 1.2em;\n  margin-bottom: 0.25em;\n}\n@media (min-width: 600px) {\n  h2 {\n    font-size: calc( 31.382671211473443px + (62.76534242294689 - 31.382671211473443) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  h2 {\n    font-size: 62.76534242294689px;\n  }\n}\nh3 {\n  font-size: 26.518406633189034px;\n  margin-top: 0;\n  line-height: 1.3em;\n  margin-bottom: 0.25em;\n}\n@media (min-width: 600px) {\n  h3 {\n    font-size: calc( 26.518406633189034px + (53.03681326637807 - 26.518406633189034) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  h3 {\n    font-size: 53.03681326637807px;\n  }\n}\nh4 {\n  font-size: 22.408095398395087px;\n  margin-top: 0;\n  line-height: 1.4em;\n  margin-bottom: 0.25em;\n}\n@media (min-width: 600px) {\n  h4 {\n    font-size: calc( 22.408095398395087px + (44.816190796790174 - 22.408095398395087) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  h4 {\n    font-size: 44.816190796790174px;\n  }\n}\nh5 {\n  font-size: 18.934875927090765px;\n  margin-top: 0;\n  line-height: 1.5em;\n  margin-bottom: 0.25em;\n}\n@media (min-width: 600px) {\n  h5 {\n    font-size: calc( 18.934875927090765px + (37.86975185418153 - 18.934875927090765) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  h5 {\n    font-size: 37.86975185418153px;\n  }\n}\nh6 {\n  font-size: 16px;\n  margin-top: 0;\n  line-height: 1.6em;\n  margin-bottom: 0.25em;\n}\n@media (min-width: 600px) {\n  h6 {\n    font-size: calc( 16px + (32 - 16) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  h6 {\n    font-size: 32px;\n  }\n}\na {\n  color: #3a3c83;\n  text-decoration: underline;\n}\na:hover {\n  color: #ff0070;\n}\n/*doc\n---\ntitle: Cetered Container\nname: container\ncategory:\n  - Structure\n---\n\nDescription.\n\n```html_example\n<section class=\"container\">This is a centered container block</section>\n```\n*/\n.container {\n  width: auto;\n  max-width: 70em;\n  float: none;\n  display: block;\n  margin-right: auto;\n  margin-left: auto;\n  padding-left: 1rem;\n  padding-right: 1rem;\n  float: left;\n  clear: none;\n  text-align: inherit;\n  width: 100%;\n  margin-left: 0%;\n  margin-right: 3%;\n}\n.container::after {\n  content: '';\n  display: table;\n  clear: both;\n}\n.container::after {\n  content: '';\n  display: table;\n  clear: both;\n}\n.container:last-child {\n  margin-right: 0%;\n}\n/*doc\n---\ntitle: Main button\nname: button\ncategory:\n  - Elements\n---\n\nDescription.\n\n```html_example\n<button>Main</button>\n```\n*/\nbutton {\n  padding: 0 0.5em;\n  height: 2em;\n  line-height: 1em;\n  background-color: #ff0070;\n  font-weight: bold;\n  color: #fff;\n}\nbutton:hover {\n  background-color: #ff4d9b;\n}\n"; });
+define('text!app.html', ['module'], function(module) { module.exports = "<template>\n  <require from=\"./styles/app.css\"></require>\n  <require from=\"./styles/nav.css\"></require>\n  <require from=\"./resources/elements/scramble\"></require>\n  <nav class=\"navbar\" role=\"navigation\">\n    <ul class=\"nav-list\">\n      <li><a href=\"#/about\"><scramble text=\"About\" duration=\"400\"></scramble></a></li>\n      <li><a href=\"#\"><scramble text=\"Norm\" duration=\"400\"></scramble></a></li>\n      <li><a href=\"#/editor\"><scramble text=\"Editor\" duration=\"400\"></scramble></a></li>\n    </ul>\n  </nav>\n  <router-view></router-view>\n</template>\n"; });
+define('text!styles/autocomplete.css', ['module'], function(module) { module.exports = "autocomplete {\n  display: inline-block;\n}\nautocomplete input {\n  width: 100%;\n  box-sizing: border-box;\n  border: none;\n}\nautocomplete .suggestions {\n  list-style-type: none;\n  cursor: default;\n  padding: 0;\n  margin: 0;\n  border: 1px solid #ccc;\n  background: #fff;\n  box-shadow: -1px 1px 3px rgba(0,0,0,0.1);\n  position: absolute;\n  z-index: 9999;\n  max-height: 15rem;\n  overflow: hidden;\n  overflow-y: auto;\n  box-sizing: border-box;\n}\nautocomplete .suggestion {\n  padding: 0 0.3rem;\n  line-height: 1.5rem;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  color: #333;\n}\nautocomplete .suggestionhover,\nautocomplete .suggestion.selected {\n  background: #f0f0f0;\n}\n"; });
+define('text!home.html', ['module'], function(module) { module.exports = "<template>\n  <require from=\"./resources/elements/scramble\"></require>\n  <require from=\"./styles/home.css\"></require>\n  <main id=\"home\">\n    <header class=\"container\">\n      <h1>Norm is a modular text-suggestion system.</h1>\n    </header>\n    <section class=\"container\">\n      <p>${message}</p>\n      <button type=\"button\" click.delegate=\"getWords()\">Refresh words</button>\n      <ul>\n        <li repeat.for=\"word of words\"><scramble text.bind=\"word\" duration=\"400\"></scramble></li>\n      </ul>\n    </section>\n  </main>\n</template>"; });
+define('text!styles/base.css', ['module'], function(module) { module.exports = "/* \n  http://jaydenseric.com/blog/forget-normalize-or-resets-lay-your-own-css-foundation\n*/\nhtml {\n  -ms-text-size-adjust: 100%;\n  -webkit-text-size-adjust: 100%;\n}\nbody {\n  margin: 0;\n  font-size: 16px;\n  -moz-osx-font-smoothing: grayscale;\n  -webkit-font-smoothing: antialiased;\n}\nh1,\nh2,\nh3,\nh4,\np,\nblockquote,\nfigure,\nol,\nul {\n  margin: 0;\n  padding: 0;\n}\nmain,\nli {\n  display: block;\n}\nh1,\nh2,\nh3,\nh4 {\n  font-size: inherit;\n}\nstrong {\n  font-weight: bold;\n}\na,\nbutton {\n  color: inherit;\n  -webkit-transition: 0.3s;\n  transition: 0.3s;\n}\na {\n  text-decoration: none;\n}\nbutton {\n  overflow: visible;\n  border: 0;\n  font: inherit;\n  -webkit-font-smoothing: inherit;\n  letter-spacing: inherit;\n  background: none;\n  cursor: pointer;\n}\n-moz-focus-inner {\n  padding: 0;\n  border: 0;\n}\nfocus {\n  outline: 0px solid transparent;\n}\n:focus {\n  outline: 0px solid transparent;\n}\nimg {\n  max-width: 100%;\n  height: auto;\n  border: 0;\n}\nh1,\nh2,\nh3,\nh4,\nh5,\nh6,\np,\nblockquote,\npre,\na,\nabbr,\nacronym,\naddress,\nbig,\ncite,\ncode,\ndel,\ndfn,\nem,\nimg,\nins,\nkbd,\nq,\ns,\nsamp,\nsmall,\nstrike,\nstrong,\nsub,\nsup,\ntt,\nvar,\nb,\nu,\ni,\ncenter,\ndl,\ndt,\ndd,\nol,\nul,\nli,\nfieldset,\nform,\nlabel,\nlegend,\ninput,\ntable,\ncaption,\ntbody,\ntfoot,\nthead,\ntr,\nth,\ntd {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: inherit;\n}\n[contentEditable=true]:empty:not(:focus):before {\n  content: attr(placeholder);\n}\n"; });
+define('text!text-editor.html', ['module'], function(module) { module.exports = "<template>\n  <require from=\"codemirror/lib/codemirror.css\"></require>\n  <require from=\"resources/elements/autocomplete\"></require>\n  <require from=\"styles/text-editor.css\"></require>\n  <main id=\"text-editor\">\n  <section class=\"text-editor-container\">\n    <div class=\"text-editor-title\">\n      <h5 contenteditable=\"true\" placeholder=\"Title\" ref=\"editorTitle\"></h5>\n    </div>\n    <label class=\"text-editor-avatar\">\n      <autocomplete dely=\"300\" placeholder=\"Beyonce\" value.bind=\"avatar\" service.bind=\"avatarNameService\"></autocomplete>\n    </label>\n  </section>\n  <section class=\"text-editor-container\">\n    <figure class=\"cm-editor\" ref=\"cmEditor\">\n    </figure>\n  </section>\n</template>"; });
+define('text!styles/home.css', ['module'], function(module) { module.exports = "#home header {\n  margin: 1rem 0;\n}\n"; });
+define('text!resources/elements/autocomplete.html', ['module'], function(module) { module.exports = "<template>\n  <require from=\"../../styles/autocomplete.css\"></require>\n  <input type=\"text\" autocomplete=\"off\"\n         aria-autocomplete=\"list\"\n         aria-expanded.bind=\"expanded\"\n         aria-owns.one-time=\"'au-autocomplate-' + id + '-suggestions'\"\n         aria-activedescendant.bind=\"index >= 0 ? 'au-autocomplate-' + id + '-suggestion-' + index : ''\"\n         id.one-time=\"'au-autocomplete-' + id\"\n         placeholder.bind=\"placeholder\"\n         value.bind=\"inputValue & debounce:delay\"\n         keydown.delegate=\"keydown($event.which)\"\n         blur.trigger=\"blur()\">\n  <ul class=\"suggestions\" role=\"listbox\"\n      if.bind=\"expanded\"\n      id.one-time=\"'au-autocomplate-' + id + '-suggestions'\"\n      ref=\"suggestionsUL\">\n    <li repeat.for=\"suggestion of suggestions\" \n        id.one-time=\"'au-autocomplate-' + id + '-suggestion-' + $index\"\n        role=\"option\"\n        class-name.bind=\"($index === index ? 'selected' : '') + ' suggestion'\"\n        mousedown.delegate=\"suggestionClicked(suggestion)\">\n      <template replaceable part=\"suggestion\">\n        ${suggestion}\n      </template>\n    </li>\n  </ul>\n</template>"; });
+define('text!styles/nav.css', ['module'], function(module) { module.exports = "nav {\n  width: auto;\n  max-width: 60em;\n  float: none;\n  display: block;\n  margin-right: auto;\n  margin-left: auto;\n  padding-left: 0;\n  padding-right: 0;\n}\nnav::after {\n  content: '';\n  display: table;\n  clear: both;\n}\nnav ul.nav-list {\n  list-style-type: none;\n}\nnav ul.nav-list li {\n  float: left;\n  clear: none;\n  text-align: inherit;\n  width: 31.33333333333333%;\n  margin-left: 0%;\n  margin-right: 3%;\n  display: inline-block;\n}\nnav ul.nav-list li::after {\n  content: '';\n  display: table;\n  clear: both;\n}\nnav ul.nav-list li:last-child {\n  margin-right: 0%;\n}\nnav ul.nav-list li a {\n  display: block;\n  text-align: center;\n  font-size: 14.201156945318074px;\n  margin-top: 1.84844094752817em;\n  line-height: 2.218129137033805em;\n  margin-bottom: 0.369688189505634em;\n  padding-top: 0;\n  margin-top: 0 !important;\n}\n@media (min-width: 600px) {\n  nav ul.nav-list li a {\n    font-size: calc( 14.201156945318074px + (23.668594908863454 - 14.201156945318074) * ((100vw - 600px) / (1140 - 600)) );\n  }\n}\n@media (min-width: 1140px) {\n  nav ul.nav-list li a {\n    font-size: 23.668594908863454px;\n    margin-top: 1.84844094752817em;\n    line-height: 2.218129137033805em;\n    margin-bottom: 0.369688189505634em;\n  }\n}\n"; });
+define('text!resources/elements/editor.html', ['module'], function(module) { module.exports = "<template>\n  <h1>${value}</h1>\n</template>"; });
+define('text!resources/elements/scramble.html', ['module'], function(module) { module.exports = "<template>\n  <span innerHtml.bind=\"targetText\"></span>\n</template>"; });
+define('text!styles/text-editor.css', ['module'], function(module) { module.exports = "#text-editor {\n  margin-top: 1rem;\n}\n.text-editor-container {\n  width: auto;\n  max-width: 60em;\n  float: none;\n  display: block;\n  margin-right: auto;\n  margin-left: auto;\n  padding-left: 1rem;\n  padding-right: 1rem;\n}\n.text-editor-container::after {\n  content: '';\n  display: table;\n  clear: both;\n}\n.text-editor-title {\n  float: left;\n  clear: none;\n  text-align: inherit;\n  width: 65.66666666666666%;\n  margin-left: 0%;\n  margin-right: 3%;\n}\n.text-editor-title::after {\n  content: '';\n  display: table;\n  clear: both;\n}\n.text-editor-title:last-child {\n  margin-right: 0%;\n}\n.text-editor-title h5 {\n  border: none;\n  font-weight: bold;\n}\n.text-editor-title h5::before {\n  color: #c7c8e6;\n}\n.text-editor-avatar {\n  float: left;\n  clear: none;\n  text-align: inherit;\n  width: 31.33333333333333%;\n  margin-left: 0%;\n  margin-right: 3%;\n}\n.text-editor-avatar::after {\n  content: '';\n  display: table;\n  clear: both;\n}\n.text-editor-avatar:last-child {\n  margin-right: 0%;\n}\n.text-editor-avatar autocomplete {\n  width: 100%;\n  display: block;\n}\n.text-editor-avatar autocomplete input {\n  font-size: 1em;\n  border-right: 1px solid #3a3c83;\n  border-left: 1px solid #3a3c83;\n  padding: 0 0.2em;\n  height: 1.4em;\n}\n.cm-editor .CodeMirror {\n  font-size: 1em;\n  line-height: 1.43em;\n}\n.cm-editor .CodeMirror .CodeMirror-linenumber {\n  color: #000;\n}\n.cm-editor .CodeMirror .CodeMirror-linenumber:nth-of-type(4) {\n  color: blu1;\n}\n"; });
+define('text!resources/elements/suggestions.html', ['module'], function(module) { module.exports = "<template>\n  <h1>${value}</h1>\n</template>"; });
+define('text!styles/typography.css', ['module'], function(module) { module.exports = "html {\n  font-family: 'Space Mono', Menlo, Monaco, Consolas, \"Courier New\", monospace;\n  font-weight: 300;\n  color: #3a3c83;\n  font-size: 16px;\n  line-height: 1.75em;\n}\n@media (min-width: 600px) {\n  html {\n    font-size: calc( 16px + (32 - 16) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  html {\n    font-size: 32px;\n  }\n}\np,\nblockquote,\npre,\naddress,\ndl,\nol,\nul,\ntable {\n  margin-bottom: 1.75em;\n}\nh1,\nh2,\nh3,\nh4,\nh5 {\n  font-family: 'Space Mono', Menlo, Monaco, Consolas, \"Courier New\", monospace;\n  font-weight: 500;\n  color: #3a3c83;\n  clear: both;\n}\nh1 {\n  font-size: 37.13918660312081px;\n  margin-top: 0;\n  line-height: 1.1em;\n  margin-bottom: 0.25em;\n}\n@media (min-width: 600px) {\n  h1 {\n    font-size: calc( 37.13918660312081px + (74.27837320624162 - 37.13918660312081) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  h1 {\n    font-size: 74.27837320624162px;\n  }\n}\nh2 {\n  font-size: 31.382671211473443px;\n  margin-top: 0;\n  line-height: 1.2em;\n  margin-bottom: 0.25em;\n}\n@media (min-width: 600px) {\n  h2 {\n    font-size: calc( 31.382671211473443px + (62.76534242294689 - 31.382671211473443) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  h2 {\n    font-size: 62.76534242294689px;\n  }\n}\nh3 {\n  font-size: 26.518406633189034px;\n  margin-top: 0;\n  line-height: 1.3em;\n  margin-bottom: 0.25em;\n}\n@media (min-width: 600px) {\n  h3 {\n    font-size: calc( 26.518406633189034px + (53.03681326637807 - 26.518406633189034) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  h3 {\n    font-size: 53.03681326637807px;\n  }\n}\nh4 {\n  font-size: 22.408095398395087px;\n  margin-top: 0;\n  line-height: 1.4em;\n  margin-bottom: 0.25em;\n}\n@media (min-width: 600px) {\n  h4 {\n    font-size: calc( 22.408095398395087px + (44.816190796790174 - 22.408095398395087) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  h4 {\n    font-size: 44.816190796790174px;\n  }\n}\nh5 {\n  font-size: 18.934875927090765px;\n  margin-top: 0;\n  line-height: 1.5em;\n  margin-bottom: 0.25em;\n}\n@media (min-width: 600px) {\n  h5 {\n    font-size: calc( 18.934875927090765px + (37.86975185418153 - 18.934875927090765) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  h5 {\n    font-size: 37.86975185418153px;\n  }\n}\nh6 {\n  font-size: 16px;\n  margin-top: 0;\n  line-height: 1.6em;\n  margin-bottom: 0.25em;\n}\n@media (min-width: 600px) {\n  h6 {\n    font-size: calc( 16px + (32 - 16) * ((100vw - 600px) / (1200 - 600)) );\n  }\n}\n@media (min-width: 1200px) {\n  h6 {\n    font-size: 32px;\n  }\n}\n"; });
+define('text!styles/variables.css', ['module'], function(module) { module.exports = ""; });
 //# sourceMappingURL=app-bundle.js.map

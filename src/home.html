@@ -1,0 +1,16 @@
+<template>
+  <require from="./resources/elements/scramble"></require>
+  <require from="./styles/home.css"></require>
+  <main id="home">
+    <header class="container">
+      <h1>Norm is a modular text-suggestion system.</h1>
+    </header>
+    <section class="container">
+      <p>${message}</p>
+      <button type="button" click.delegate="getWords()">Refresh words</button>
+      <ul>
+        <li repeat.for="word of words"><scramble text.bind="word" duration="400"></scramble></li>
+      </ul>
+    </section>
+  </main>
+</template>
