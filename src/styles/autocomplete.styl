@@ -1,24 +1,30 @@
+@import 'variables'
+
 autocomplete
   display inline-block
   input
     width 100%
     box-sizing border-box
     border none
+    color $primary
+    &::placeholder
+      color $primary-lighter
+      margin-left: 0.2em
 
   .suggestions
     list-style-type none
     cursor default
-    padding 0
+    padding 0 2rem 0 0
     margin 0
-    border 1px solid #ccc
-    background #fff
-    box-shadow -1px 1px 3px rgba(0,0,0,.1)
+    border none
+    background $white
     position absolute
     z-index 9999 
     max-height 15rem 
     overflow hidden 
     overflow-y auto 
     box-sizing border-box
+    color $primary
 
   .suggestion
     padding 0 .3rem
@@ -26,7 +32,6 @@ autocomplete
     white-space nowrap
     overflow hidden
     text-overflow ellipsis
-    color #333
 
   .suggestionhover, .suggestion.selected 
-    background #f0f0f0
+    color $magenta

@@ -1,25 +1,16 @@
 import { inject } from 'aurelia-framework'
-import CodeMirror from 'codemirror'
 import { avatars } from 'data/avatars'
+import { Cricket } from 'resources/utils/cricket'
 
+//@inject(Suggestions)
 export class TextEditor {
 
   constructor() {
-    this.start = 'It is going to be a very long day if we keep arguing and he has to seek his way beyond '
+    this.start = 'and he has to seek his way beyond '
   }
 
   avatarNameService = new AvatarNameSuggestionService()
   avatar = ""
-
-  editorOptions = {
-    lineNumbers: false,
-    mode: 'markdown',
-    extraKeys: { 'Ctrl-Space': 'autocomplete' },
-    theme: 'default',
-    lineWrapping: true,
-    hintOptions: { aync: true, completeSingle: false },
-    foldGutter: false
-  }
 
   editorTitleEvent = e => {
     if (e.which === 13)
@@ -31,8 +22,6 @@ export class TextEditor {
   }
 
   attached() {
-    this.cm = CodeMirror(this.cmEditor, this.editorOptions)
-    this.cm.configure
     this.editorTitle.addEventListener('keypress', this.editorTitleEvent)
   }
 }

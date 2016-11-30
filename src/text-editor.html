@@ -1,6 +1,6 @@
 <template>
-  <require from="codemirror/lib/codemirror.css"></require>
   <require from="resources/elements/autocomplete"></require>
+  <require from="resources/elements/editor"></require>
   <require from="styles/text-editor.css"></require>
   <main id="text-editor">
   <section class="text-editor-container">
@@ -12,7 +12,6 @@
     </label>
   </section>
   <section class="text-editor-container">
-    <figure class="cm-editor" ref="cmEditor">
-    </figure>
+    <editor placeholder='You are typeing as...'></editor>
   </section>
 </template>

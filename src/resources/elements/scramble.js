@@ -29,7 +29,6 @@ export class Scramble {
 
   stopAnimation(text) {
     if (this.animationID) {
-      console.log(this.animationID)
       cancelAnimationFrame(this.animationID);
       this.targetText = text ? text : this.text
       this.animationID = undefined

@@ -6,7 +6,7 @@
       <h1>Norm is a modular text-suggestion system.</h1>
     </header>
     <section class="container">
-      <p>${message}</p>
+      <p><scramble repeat.for="msg of msgArray" text.bind="msg" duration="45"/></scramble></p>
       <button type="button" click.delegate="getWords()">Refresh words</button>
       <ul>
         <li repeat.for="word of words"><scramble text.bind="word" duration="400"></scramble></li>

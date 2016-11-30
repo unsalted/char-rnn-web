@@ -1,0 +1,96 @@
+@import 'variables'
+
+
+  /* BASICS */
+.CodeMirror
+  font-family inherit
+  color $primary
+  font-size 1em
+  line-height 1.43em
+  
+  .CodeMirror-placeholder
+    color $primary-lighter
+  
+  .CodeMirror-cursor
+    border-left none
+    border-right 2px solid $primary
+    width 0
+    color $primary
+      /* DEFAULT THEME */
+  .cm-header 
+    color $primary
+  .cm-quote 
+    color $primary-light
+  .cm-negative 
+    color red
+  .cm-positive 
+    color teal
+  .cm-header, .cm-strong 
+    font-weight bold
+  .cm-em 
+    font-style italic
+  .cm-link 
+    text-decoration underline
+  .cm-strikethrough 
+    text-decoration line-through
+  .cm-keyword 
+    color $magenta
+  .cm-s-default .cm-atom 
+    color #219
+  .cm-s-default .cm-number 
+    color #164
+  .cm-s-default .cm-def 
+    color #00f
+  .cm-variable,
+  .cm-punctuation,
+  .cm-property,
+  .cm-operator,
+  .cm-variable-2,
+    color $primary
+  .cm-s-default .cm-variable-3 
+    color #085
+  .cm-comment 
+    color $primary-light
+  .cm-s-default .cm-string 
+    color #a11
+  .cm-s-default .cm-string-2 
+    color #f50
+  .cm-s-default .cm-meta 
+    color #555
+  .cm-s-default .cm-qualifier 
+    color #555
+  .cm-s-default .cm-builtin 
+    color #30a
+  .cm-s-default .cm-bracket 
+    color #997
+  .cm-s-default .cm-tag 
+    color $primary-lighter
+  .cm-s-default .cm-attribute 
+    color #00c
+  .cm-s-default .cm-hr 
+    color #999
+  .cm-link 
+    color $magenta
+  .cm-error 
+    color red
+  .cm-invalidchar 
+    color #f00
+
+  .CodeMirror-composing 
+    border-bottom 2px solid
+
+    /* PADDING */
+
+  .CodeMirror-lines
+    padding 4px 0 /* Vertical padding around content */
+    
+  .CodeMirror pre
+    padding 0 4px /* Horizontal padding of content */
+
+  .CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler
+    background-color white /* The little square between H and V scrollbars */
+
+  .CodeMirror-guttermarker 
+    color black
+  .CodeMirror-guttermarker-subtle 
+    color #999

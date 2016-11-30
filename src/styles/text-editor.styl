@@ -14,7 +14,7 @@
     border none
     font-weight bold
     &::before
-      color lighten($primary, 75%)
+      color $primary-lighter
 
 .text-editor-avatar
   column(1/3)
@@ -28,11 +28,4 @@
       padding 0 0.2em
       height 1.4em
     
-.cm-editor
-  .CodeMirror
-    font-size 1em
-    line-height 1.43em
-    .CodeMirror-linenumber
-      color black
-      &:nth-of-type(4)
-        color blu1
+        

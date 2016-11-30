@@ -9,10 +9,13 @@
          placeholder.bind="placeholder"
          value.bind="inputValue & debounce:delay"
          keydown.delegate="keydown($event.which)"
-         blur.trigger="blur()">
+         blur.trigger="blur()"
+         ref="acinput"
+         >
   <ul class="suggestions" role="listbox"
       if.bind="expanded"
       id.one-time="'au-autocomplate-' + id + '-suggestions'"
+      style="width: ${acinput.offsetWidth}px"
       ref="suggestionsUL">
     <li repeat.for="suggestion of suggestions" 
         id.one-time="'au-autocomplate-' + id + '-suggestion-' + $index"

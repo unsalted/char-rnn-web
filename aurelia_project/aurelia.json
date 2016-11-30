@@ -110,7 +110,6 @@
           "aurelia-templating-binding",
           "gcd",
           "requestanimationframe",
-          "codemirror",
           {
             "name": "lodash",
             "path": "../node_modules/lodash",
@@ -121,7 +120,8 @@
             "path": "../node_modules/codemirror",
             "main": "lib/codemirror.js",
             "resources": [
-              "lib/codemirror.css"
+              "lib/codemirror.css",
+              "addon/hint/show-hint.css"
             ]
           },
           {

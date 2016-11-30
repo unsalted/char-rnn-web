@@ -16,6 +16,7 @@ export class Autocomplete {
   expanded = false
   @observable inputValue = ''
   updatingInput = false
+  deleteing = false
   suggestions = []
   index = -1
   suggestionsUL = null
@@ -56,6 +57,12 @@ export class Autocomplete {
   }
   
   inputValueChanged(value) {
+    if (this.deleteing) {
+      this.userInput = value
+      this.value = value
+      this.deleteing = false
+      return
+    }
     if (this.updatingInput) {
       return
     }
@@ -90,6 +97,12 @@ export class Autocomplete {
   }
   
   keydown(key) {
+        //delete do nothing
+    if(key == 8) {
+      this.deleteing = true
+      return true
+    }
+
     if (!this.expanded) {
       return true
     }
